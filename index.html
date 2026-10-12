@@ -1,1 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GT Vision Sensor & C-Mount Calculator</title>
 
+<style>
+
+body{
+    font-family:Arial,sans-serif;
+    background:#f4f7f9;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+    background:white;
+    border-radius:12px;
+    padding:25px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.1);
+}
+
+h1{
+    color:#003366;
+    text-align:center;
+}
+
+.controls{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+label{
+    display:block;
+    margin-bottom:5px;
+    font-weight:bold;
+}
+
+select{
+    width:100%;
+    padding:10px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+button{
+    margin-top:20px;
+    width:100%;
+    padding:14px;
+    background:#0099cc;
+    border:none;
+    border-radius:8px;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#0077a8;
+}
+
+.results{
+    margin-top:25px;
+    background:#f7fafc;
+    padding:20px;
+    border-radius:10px;
+}
+
+.statusRow{
+    display:flex;
+    align-items:center;
+    margin-bottom:10px;
+}
+
+.light{
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    margin-right:10px;
+}
+
+.resultLine{
+    margin:8px 0;
+}
+
+.recommend{
+    font-size:20px;
+    color:#003366;
+    font-weight:bold;
+}
+
+svg{
+    width:100%;
+    max-width:600px;
+    margin:auto;
+    display:block;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>GT Vision Sensor & C-Mount Calculator</h1>
+
+<div class="controls">
+
+<div>
+<label>Sensor Size</label>
+<select id="sensor">
+
+<option value="3.68,2.76">1/4"</option>
+<option value="4.8,3.6">1/3"</option>
+<option value="5.76,4.29">1/2.9"</option>
+<option value="6.4,4.8">1/2.5"</option>
+<option value="7.18,5.32">1/2"</option>
+<option value="8.8,6.6">2/3"</option>
+<option value="11.3,6.3">1"</option>
+<option value="13.2,8.8">4/3"</option>
+<option value="17.3,13">APS-C</option>
+
+</select>
+</div>
+
+<div>
+<label>C-Mount Adapter</label>
+<select id="cmount">
+
+<option value="4.8">0.35x</option>
+<option value="6">0.45x</option>
+<option value="8">0.5x</option>
+<option value="11">0.63x</option>
+<option value="12.7">0.7x</option>
+<option value="16">1.0x</option>
+
+</select>
+</div>
+
+</div>
+
+<button onclick="calculate()">Calculate</button>
+
+<div class="results">
+
+<div class="statusRow">
+<div class="light" id="light"></div>
+<div id="statusText"></div>
+</div>
+
+<div class="resultLine" id="diag"></div>
+<div class="resultLine" id="coverage"></div>
+<div class="recommend" id="recommend"></div>
+
+</div>
+
+<br>
+
+<svg viewBox="0 0 500 500">
+
+<text
+id="svgStatus"
+x="250"
+y="30"
+text-anchor="middle"
+font-size="22"
+font-weight="bold">
+Coverage
+</text>
+
+<circle
+id="imageCircle"
+cx="250"
+cy="270"
+r="180"
+fill="#d4edda"
+stroke="#28a745"
+stroke-width="4"/>
+
+<rect
+id="sensorRect"
+x="175"
+y="210"
+width="150"
+height="120"
+fill="#28a74555"
+stroke="#28a745"
+stroke-width="3"/>
+
+</svg>
+
+</div>
+
+<script>
+
+const mounts = [
+    {name:"0.35x",circle:4.8},
+    {name:"0.45x",circle:6},
+    {name:"0.5x",circle:8},
+    {name:"0.63x",circle:11},
+    {name:"0.7x",circle:12.7},
+    {name:"1.0x",circle:16}
+];
+
+function recommendMount(diagonal){
+
+    for(let m of mounts){
+
+        if(m.circle >= diagonal){
+            return m.name;
+        }
+    }
+
+    return "Larger than 1.0x";
+}
+
+function calculate(){
+
+    const sensorValues =
+        document.getElementById("sensor")
+        .value.split(",");
+
+    const sensorWidth =
+        parseFloat(sensorValues[0]);
+
+    const sensorHeight =
+        parseFloat(sensorValues[1]);
+
+    const imageCircle =
+        parseFloat(
+            document.getElementById("cmount").value
+        );
+
+    const diagonal =
+        Math.sqrt(
+            sensorWidth*sensorWidth +
+            sensorHeight*sensorHeight
+        );
+
+    const coverage =
+        (imageCircle/diagonal) * 100;
+
+    let colour;
+    let fill;
+    let status;
+
+    if(coverage >= 115){
+
+        colour="#28a745";
+        fill="#d4edda";
+        status="Excellent Coverage";
+
+    }else if(coverage >= 100){
+
+        colour="#ffc107";
+        fill="#fff3cd";
+        status="Borderline Coverage";
+
+    }else{
+
+        colour="#dc3545";
+        fill="#f8d7da";
+        status="Vignetting Risk";
+
+    }
+
+    document.getElementById("light")
+        .style.backgroundColor=colour;
+
+    document.getElementById("statusText")
+        .textContent=status;
+
+    document.getElementById("diag")
+        .innerHTML=
+        "<b>Sensor Diagonal:</b> "
+        + diagonal.toFixed(2)
+        + " mm";
+
+    document.getElementById("coverage")
+        .innerHTML=
+        "<b>Coverage:</b> "
+        + coverage.toFixed(1)
+        + "%";
+
+    document.getElementById("recommend")
+        .innerHTML=
+        "Recommended C-Mount: "
+        + recommendMount(diagonal);
+
+    document.getElementById("svgStatus")
+        .textContent=status;
+
+    document.getElementById("svgStatus")
+        .setAttribute("fill",colour);
+
+    const circle =
+        document.getElementById("imageCircle");
+
+    circle.setAttribute("stroke",colour);
+    circle.setAttribute("fill",fill);
+
+    const sensorRect =
+        document.getElementById("sensorRect");
+
+    sensorRect.setAttribute(
+        "stroke",
+        colour
+    );
+
+    sensorRect.setAttribute(
+        "fill",
+        colour + "55"
+    );
+
+    /*
+    Scale sensor against image circle.
+    If sensor exceeds image circle
+    it visibly extends outside.
+    */
+
+    const pxPerMM = 360 / imageCircle;
+
+    const width =
+        sensorWidth * pxPerMM;
+
+    const height =
+        sensorHeight * pxPerMM;
+
+    sensorRect.setAttribute(
+        "width",
+        width
+    );
+
+    sensorRect.setAttribute(
+        "height",
+        height
+    );
+
+    sensorRect.setAttribute(
+        "x",
+        250 - width/2
+    );
+
+    sensorRect.setAttribute(
+        "y",
+        270 - height/2
+    );
+}
+
+calculate();
+
+</script>
+
+</body>
+</html>
